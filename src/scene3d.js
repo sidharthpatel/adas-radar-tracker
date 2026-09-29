@@ -83,17 +83,19 @@ export class Scene3D {
     const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat);
     group.add(mesh);
     group.userData.mesh = mesh;
-    group.position.z = 0.03;
+    group.position.y = 0.03;
     return group;
   }
 
   /** Rebuild the radar sector geometry — called whenever range/FOV sliders change. */
   updateRadarCone(rangeM, halfFovRad) {
+    // Built flat on the ground (X = forward, Z = lateral), since three.js/glTF
+    // use Y as the up-axis, not Z.
     const segs = 32;
     const positions = [0, 0, 0];
     for (let i = 0; i <= segs; i++) {
       const a = -halfFovRad + (2 * halfFovRad * i) / segs;
-      positions.push(Math.cos(a) * rangeM, Math.sin(a) * rangeM, 0);
+      positions.push(Math.cos(a) * rangeM, 0, Math.sin(a) * rangeM);
     }
     const index = [];
     for (let i = 1; i <= segs; i++) index.push(0, i, i + 1);
@@ -166,10 +168,15 @@ export class Scene3D {
     return inst;
   }
 
+  // The simulation (world.js, tracker.js) works in a plain 2D ground plane:
+  // (x, y) = (forward, lateral), height is implicitly 0. three.js and the
+  // glTF models it loads use Y as the up-axis, not Z — so every ground-plane
+  // (x, y) from the simulation maps to three.js (x, 0, y), and "up" is Y.
+
   syncVehicles(vehicles) {
     for (const v of vehicles) {
       const inst = this._instanceFor(v);
-      inst.position.set(v.x, v.y, 0);
+      inst.position.set(v.x, 0, v.y);
     }
   }
 
@@ -179,7 +186,7 @@ export class Scene3D {
       const m = this.detectionPool[i];
       if (!m) return;
       m.visible = opts.showDetections;
-      m.position.set(d.x, d.y, 1.3);
+      m.position.set(d.x, 1.3, d.y);
     });
     for (let i = detections.length; i < this.detectionPool.length; i++) this.detectionPool[i].visible = false;
 
@@ -190,13 +197,13 @@ export class Scene3D {
       slot.group.visible = opts.showTracks;
       const [px, py] = t.position;
       const [vx, vy] = t.velocity;
-      slot.group.position.set(px, py, 0.05);
+      slot.group.position.set(px, 0.05, py);
       const size = 1 + t.positionUncertainty * 0.6;
-      slot.box.scale.set(2.0, 1.1, size);
-      slot.box.position.z = size / 2;
+      slot.box.scale.set(2.0, size, 1.1); // (length, height, width) — height grows with uncertainty
+      slot.box.position.y = size / 2; // sit the box on the ground instead of centering it through it
       const speed = Math.hypot(vx, vy);
       if (speed > 0.3) {
-        slot.arrow.setDirection(new THREE.Vector3(vx, vy, 0).normalize());
+        slot.arrow.setDirection(new THREE.Vector3(vx, 0, vy).normalize());
         slot.arrow.setLength(Math.min(speed * 0.3, 4), 0.5, 0.3);
         slot.arrow.visible = true;
       } else {
