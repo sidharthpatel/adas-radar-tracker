@@ -43,7 +43,11 @@ $('toggle-play').onclick = () => {
 };
 $('toggle-detections').onchange = (e) => (state.showDetections = e.target.checked);
 $('toggle-tracks').onchange = (e) => (state.showTracks = e.target.checked);
-$('reset').onclick = () => tracker.reset();
+$('reset').onclick = () => {
+  tracker.reset();
+  accuracy.raw = null;
+  accuracy.filtered = null;
+};
 
 function resize() {
   const wrap = canvas.parentElement;
@@ -53,8 +57,6 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 
-window.__debug = { world, tracker, scene3d, state };
-
 async function boot() {
   $('loading').hidden = false;
   await scene3d.loadAssets((p) => ($('loading-bar').style.width = `${p * 100}%`));
@@ -62,6 +64,15 @@ async function boot() {
   resize();
   applyRadarCone();
   requestAnimationFrame(loop);
+}
+
+// Rolling (exponentially-smoothed) accuracy stats: how far raw detections and
+// filtered track estimates land from the true vehicle position they came
+// from. This is the whole point of the filter made visible as a number.
+const accuracy = { raw: null, filtered: null };
+const SMOOTHING = 0.06;
+function ema(prev, sample) {
+  return prev === null ? sample : prev + SMOOTHING * (sample - prev);
 }
 
 let last = performance.now();
@@ -83,6 +94,21 @@ function loop(now) {
     scene3d.syncOverlay(detections, tracks, state);
     $('track-count').textContent = tracks.size;
     $('det-count').textContent = detections.length;
+
+    const vehicleById = new Map(world.vehicles.map((v) => [v.id, v]));
+    for (const d of detections) {
+      const v = vehicleById.get(d.vehicleId);
+      if (v) accuracy.raw = ema(accuracy.raw, Math.hypot(d.x - v.x, d.y - v.y));
+    }
+    for (const t of tracks.values()) {
+      const v = vehicleById.get(t.vehicleId);
+      if (v && t.hits >= 3) {
+        const [px, py] = t.position;
+        accuracy.filtered = ema(accuracy.filtered, Math.hypot(px - v.x, py - v.y));
+      }
+    }
+    $('acc-raw').textContent = accuracy.raw === null ? '–' : `${accuracy.raw.toFixed(2)} m`;
+    $('acc-filtered').textContent = accuracy.filtered === null ? '–' : `${accuracy.filtered.toFixed(2)} m`;
   }
 
   scene3d.render();

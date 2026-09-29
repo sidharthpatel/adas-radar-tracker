@@ -43,7 +43,9 @@ export class MultiObjectTracker {
     pairs.sort((a, b) => a.d - b.d);
     for (const { id, i } of pairs) {
       if (!unmatchedTrack.has(id) || !unmatchedDet.has(i)) continue;
-      this.tracks.get(id).update(detections[i].x, detections[i].y);
+      const track = this.tracks.get(id);
+      track.update(detections[i].x, detections[i].y);
+      track.vehicleId = detections[i].vehicleId; // bookkeeping only, for accuracy stats
       unmatchedTrack.delete(id);
       unmatchedDet.delete(i);
     }
@@ -51,7 +53,9 @@ export class MultiObjectTracker {
     // Unmatched detections start new tentative tracks.
     for (const i of unmatchedDet) {
       const id = this.nextId++;
-      this.tracks.set(id, new KalmanTrack2D(detections[i].x, detections[i].y, measurementNoiseStd));
+      const track = new KalmanTrack2D(detections[i].x, detections[i].y, measurementNoiseStd);
+      track.vehicleId = detections[i].vehicleId;
+      this.tracks.set(id, track);
     }
 
     // Tracks that have gone quiet too long are dropped (e.g. left radar range).

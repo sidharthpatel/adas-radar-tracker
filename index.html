@@ -36,6 +36,22 @@
     .stats dt { color: var(--muted); } .stats dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
     footer { padding: 0 20px 24px; color: var(--muted); font-size: 12px; }
     footer a { color: var(--accent); }
+
+    .intro { max-width: 760px; padding: 0 20px; color: var(--muted); font-size: 14px; }
+    .intro b { color: var(--text); }
+    .legend { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12px; color: var(--muted); }
+    .legend li { display: flex; align-items: center; gap: 6px; }
+    .legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .legend i.raw { background: var(--bad); }
+    .legend i.track { background: transparent; border: 2px solid var(--good); border-radius: 3px; }
+    .legend i.cone { background: var(--accent); opacity: .4; border-radius: 2px; }
+    .accuracy { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+    .accuracy div { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+    .accuracy span { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+    .accuracy b { font-size: 20px; font-variant-numeric: tabular-nums; }
+    .accuracy b.raw { color: var(--bad); } .accuracy b.filtered { color: var(--good); }
+    .how p { font-size: 13px; margin: 6px 0; } .how code { background: var(--border); padding: 0 4px; border-radius: 4px; font-size: 12px; }
+    .how p.muted { color: var(--muted); font-size: 12px; }
   </style>
 </head>
 <body>
@@ -44,13 +60,30 @@
     <p class="sub">A Kalman filter tracking vehicles from noisy radar-style detections on a highway — live, in 3D.</p>
   </header>
 
+  <p class="intro">
+    Every radar, in every car with adaptive cruise control or automatic emergency braking, has this exact problem:
+    it gets a burst of noisy position readings many times a second and has to answer <b>"where is that car,
+    really, and how fast is it going?"</b> A <b>Kalman filter</b> is the standard answer — it fuses a physics
+    prediction ("it was probably still moving the same way") with each new noisy reading, weighing the two by how
+    confident it currently is. The <b style="color:var(--bad)">red dots</b> below are the raw, noisy detections;
+    the <b style="color:var(--good)">green boxes</b> are the filter's cleaned-up estimate of where each vehicle
+    actually is.
+  </p>
+
   <main class="layout">
-    <div class="stage">
-      <canvas id="view"></canvas>
-      <div class="loading" id="loading">
-        <div>Loading scene…</div>
-        <div class="track"><div id="loading-bar"></div></div>
+    <div>
+      <div class="stage">
+        <canvas id="view"></canvas>
+        <div class="loading" id="loading">
+          <div>Loading scene…</div>
+          <div class="track"><div id="loading-bar"></div></div>
+        </div>
       </div>
+      <ul class="legend">
+        <li><i class="cone"></i>Radar field of view</li>
+        <li><i class="raw"></i>Raw noisy detection</li>
+        <li><i class="track"></i>Filtered track + velocity</li>
+      </ul>
     </div>
 
     <aside class="side">
@@ -75,6 +108,18 @@
           <dt>Raw detections this frame</dt><dd id="det-count">0</dd>
           <dt>Active tracks</dt><dd id="track-count">0</dd>
         </dl>
+        <div class="accuracy">
+          <div><span>Raw error</span><b class="raw" id="acc-raw">–</b></div>
+          <div><span>Filtered error</span><b class="filtered" id="acc-filtered">–</b></div>
+        </div>
+      </section>
+
+      <section class="card how">
+        <h2>How it works</h2>
+        <p>Each track keeps a state <code>[x, y, vx, vy]</code> and repeats two steps every frame:</p>
+        <p><b>Predict</b> — move the estimate forward using its last known velocity, and grow its uncertainty a little (the world could have changed).</p>
+        <p><b>Update</b> — when a new noisy detection arrives, pull the estimate toward it, weighted by how much to trust the sensor versus the prediction (the Kalman gain).</p>
+        <p class="muted">Which detection belongs to which track is its own problem — this demo uses simple nearest-neighbor matching, spawning a new track for anything unmatched and dropping tracks that go unseen too long.</p>
       </section>
     </aside>
   </main>
