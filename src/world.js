@@ -2,7 +2,7 @@
 // simulated in the ego car's own reference frame so the ego never has to
 // move (its speed is simply subtracted from everyone else's). This is also
 // exactly what a real radar measures — relative range and closing speed.
-const LANE_Y = { left: -3.5, mid: 0, right: 3.5 };
+const LANE_Y = { left: -4.0, mid: 0, right: 4.0 }; // matches the widened road exported from Blender
 const RESPAWN_AHEAD = 90; // a vehicle that falls this far behind ego respawns ahead
 const RESPAWN_BEHIND = -20; // a vehicle that pulls this far ahead respawns behind
 
