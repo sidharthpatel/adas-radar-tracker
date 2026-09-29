@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radar Track — Kalman Filter Vehicle Tracking</title>
+  <style>
+    :root {
+      --bg: #0c1118; --panel: #141b26; --border: #263145; --text: #e8edf5; --muted: #8b98ad;
+      --accent: #4fd1ff; --good: #37e08a; --bad: #ff5a3c;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
+    header { padding: 16px 20px 8px; }
+    h1 { margin: 0; font-size: 21px; }
+    h1 span { color: var(--accent); }
+    p.sub { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; padding: 10px 20px 20px; }
+    @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+    .stage { position: relative; background: #9fb8c8; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); aspect-ratio: 16/9; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: #0c1118; color: var(--muted); font-size: 13px; }
+    .loading[hidden] { display: none; }
+    .loading .track { width: 200px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .loading .track > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+    .side { display: flex; flex-direction: column; gap: 12px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+    .card h2 { margin: 0 0 10px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; }
+    .row input[type=range] { flex: 1; margin: 0 8px; }
+    .row output { min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; }
+    label.check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
+    button { font: inherit; background: var(--accent); color: #04202b; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-weight: 600; }
+    button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); font-weight: 500; }
+    .stats { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; font-size: 13px; }
+    .stats dt { color: var(--muted); } .stats dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+    footer { padding: 0 20px 24px; color: var(--muted); font-size: 12px; }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Radar <span>Track</span></h1>
+    <p class="sub">A Kalman filter tracking vehicles from noisy radar-style detections on a highway — live, in 3D.</p>
+  </header>
+
+  <main class="layout">
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div class="loading" id="loading">
+        <div>Loading scene…</div>
+        <div class="track"><div id="loading-bar"></div></div>
+      </div>
+    </div>
+
+    <aside class="side">
+      <section class="card">
+        <h2>Playback</h2>
+        <div class="row"><button id="toggle-play">Pause</button><button id="reset" class="ghost">Reset tracks</button></div>
+        <label class="check"><input type="checkbox" id="toggle-detections" checked> Show raw detections</label>
+        <label class="check"><input type="checkbox" id="toggle-tracks" checked> Show filtered tracks</label>
+      </section>
+
+      <section class="card">
+        <h2>Radar</h2>
+        <div class="row">Range <input id="range" type="range" min="20" max="90" value="55"><output id="range-out"></output></div>
+        <div class="row">Field of view <input id="fov" type="range" min="5" max="35" value="18"><output id="fov-out"></output></div>
+        <div class="row">Detection noise <input id="noise" type="range" min="0" max="2.5" step="0.1" value="1"><output id="noise-out"></output></div>
+        <div class="row">Dropout rate <input id="dropout" type="range" min="0" max="0.4" step="0.02" value="0.06"><output id="dropout-out"></output></div>
+      </section>
+
+      <section class="card">
+        <h2>Live</h2>
+        <dl class="stats">
+          <dt>Raw detections this frame</dt><dd id="det-count">0</dd>
+          <dt>Active tracks</dt><dd id="track-count">0</dd>
+        </dl>
+      </section>
+    </aside>
+  </main>
+
+  <footer>
+    Vehicle models adapted from the <a href="https://sketchfab.com/3d-models/generic-passenger-car-pack-20f9af9b8a404d5cb022ac6fe87f21f5" target="_blank" rel="noopener">Generic passenger car pack</a> by Comrade1280, licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC Attribution 4.0</a>.
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
