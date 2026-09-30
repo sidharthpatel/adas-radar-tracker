@@ -83,25 +83,49 @@ export class Scene3D {
     const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat);
     group.add(mesh);
     group.userData.mesh = mesh;
-    group.position.y = 0.03;
+    // Emanate from the sensor's real-world mount point: the ego car's front
+    // bumper/grille, off the ground — not a wedge painted on the pavement.
+    group.position.set(2.1, 0.5, 0);
     return group;
   }
 
-  /** Rebuild the radar sector geometry — called whenever range/FOV sliders change. */
+  /**
+   * Rebuild the radar beam geometry — called whenever range/FOV sliders
+   * change. It's a true 3D cone (apex at the sensor, spreading in both
+   * azimuth and a fixed, narrower elevation angle — real automotive radar
+   * beams are wide horizontally and thin vertically), not a flat sector.
+   */
   updateRadarCone(rangeM, halfFovRad) {
-    // Built flat on the ground (X = forward, Z = lateral), since three.js/glTF
-    // use Y as the up-axis, not Z.
+    const halfElevRad = halfFovRad * 0.3; // beams fan out far more side-to-side than up-down
+    const halfH = rangeM * Math.tan(halfElevRad);
     const segs = 32;
-    const positions = [0, 0, 0];
+
+    const positions = [0, 0, 0]; // index 0: apex
+    const topRim = [];
+    const bottomRim = [];
     for (let i = 0; i <= segs; i++) {
       const a = -halfFovRad + (2 * halfFovRad * i) / segs;
-      positions.push(Math.cos(a) * rangeM, 0, Math.sin(a) * rangeM);
+      const x = Math.cos(a) * rangeM;
+      const z = Math.sin(a) * rangeM;
+      topRim.push(positions.length / 3);
+      positions.push(x, halfH, z);
+      bottomRim.push(positions.length / 3);
+      positions.push(x, -halfH, z);
     }
+
     const index = [];
-    for (let i = 1; i <= segs; i++) index.push(0, i, i + 1);
+    for (let i = 0; i < segs; i++) {
+      // top and bottom fans (apex -> rim), plus the far end-cap strip between them
+      index.push(0, topRim[i], topRim[i + 1]);
+      index.push(0, bottomRim[i + 1], bottomRim[i]);
+      index.push(topRim[i], bottomRim[i], topRim[i + 1]);
+      index.push(topRim[i + 1], bottomRim[i], bottomRim[i + 1]);
+    }
+
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     geo.setIndex(index);
+    geo.computeVertexNormals();
     this.radarCone.userData.mesh.geometry.dispose();
     this.radarCone.userData.mesh.geometry = geo;
   }
@@ -220,8 +244,12 @@ export class Scene3D {
     this.renderer.setSize(w, h, false);
   }
 
-  render() {
+  render(now = performance.now()) {
     this.controls.update();
+    // A slow opacity pulse so the cone reads as an active beam, not a static
+    // translucent prop.
+    const t = now / 1000;
+    this.radarCone.userData.mesh.material.opacity = 0.12 + 0.07 * (0.5 + 0.5 * Math.sin(t * 2.2));
     this.renderer.render(this.scene, this.camera);
   }
 }

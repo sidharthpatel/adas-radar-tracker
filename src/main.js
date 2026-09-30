@@ -111,7 +111,7 @@ function loop(now) {
     $('acc-filtered').textContent = accuracy.filtered === null ? '–' : `${accuracy.filtered.toFixed(2)} m`;
   }
 
-  scene3d.render();
+  scene3d.render(now);
   requestAnimationFrame(loop);
 }
 
