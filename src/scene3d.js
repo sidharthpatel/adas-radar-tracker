@@ -76,9 +76,13 @@ export class Scene3D {
     const mat = new THREE.MeshBasicMaterial({
       color: 0x4fd1ff,
       transparent: true,
-      opacity: 0.16,
+      opacity: 0.22,
       side: THREE.DoubleSide,
-      depthWrite: false,
+      // It's the only transparent object in the scene, so it's safe to let
+      // it depth-test against itself — otherwise its own overlapping faces
+      // (top/bottom/far-cap) blend unevenly and the beam reads as a hollow
+      // outline instead of a solid, uniformly-lit volume.
+      depthWrite: true,
     });
     const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat);
     group.add(mesh);
@@ -121,6 +125,10 @@ export class Scene3D {
       index.push(topRim[i], bottomRim[i], topRim[i + 1]);
       index.push(topRim[i + 1], bottomRim[i], bottomRim[i + 1]);
     }
+    // Seal the two flat side walls (at +-halfFovRad) so the beam is a fully
+    // closed volume instead of an open-ended shell.
+    index.push(0, topRim[0], bottomRim[0]);
+    index.push(0, bottomRim[segs], topRim[segs]);
 
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
