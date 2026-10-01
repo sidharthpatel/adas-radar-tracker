@@ -29,8 +29,12 @@ Deployed as a Cloudflare Worker with static assets, bound to a path on
 `sidharthpatel.com` (not a subdomain) rather than its own Pages project —
 this keeps it fully independent of the portfolio site's own deployment.
 
-    npm run build
-    npx wrangler deploy
+**Deployment is automatic**, via Cloudflare Workers Builds connected to this
+repo: every push to `main` triggers a build (`npm run build`) and deploy
+(`wrangler deploy`) on Cloudflare's own infrastructure. There is no manual
+deploy step — don't run `wrangler deploy` by hand against this project;
+let the connected build handle it. Build status and logs live under the
+`radar-tracker` Worker's **Builds** tab in the Cloudflare dashboard.
 
 Live at <https://sidharthpatel.com/projects/radar-tracker/>.
 
