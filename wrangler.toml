@@ -10,4 +10,9 @@ routes = [
 [assets]
 directory = "./dist"
 binding = "ASSETS"
-not_found_handling = "single-page-application"
+# This app has no client-side routing, so a missing asset should be a real
+# 404 — not silently masked as a 200 serving index.html, which makes a truly
+# missing file indistinguishable (from the browser's perspective) from one
+# that loaded fine, and is why a failed model load surfaced as a confusing
+# "HTML is not valid JSON" error instead of a plain 404.
+not_found_handling = "404-page"
