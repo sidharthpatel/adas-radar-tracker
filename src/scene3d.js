@@ -3,8 +3,28 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const loader = new GLTFLoader();
-const loadModel = (path) =>
-  new Promise((resolve, reject) => loader.load(path, (gltf) => resolve(gltf.scene), undefined, reject));
+const LOAD_TIMEOUT_MS = 20000;
+
+function loadModel(path) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`Timed out loading ${path} (no response after ${LOAD_TIMEOUT_MS / 1000}s)`)),
+      LOAD_TIMEOUT_MS,
+    );
+    loader.load(
+      path,
+      (gltf) => {
+        clearTimeout(timer);
+        resolve(gltf.scene);
+      },
+      undefined,
+      (err) => {
+        clearTimeout(timer);
+        reject(new Error(`Failed to load ${path}: ${err?.message || err}`));
+      },
+    );
+  });
+}
 
 export class Scene3D {
   constructor(canvas) {
@@ -163,29 +183,34 @@ export class Scene3D {
   }
 
   async loadAssets(onProgress) {
+    // Loaded in parallel rather than one at a time — on a real (non-datacenter)
+    // connection, seven sequential round-trips add up to a long wait that
+    // looks indistinguishable from a hang.
     const names = ['road', 'ego_car', 'traffic_sedan', 'traffic_hatchback', 'traffic_suv', 'traffic_wagon', 'traffic_compact'];
     let done = 0;
-    for (const name of names) {
-      const model = await loadModel(`models/${name}.glb`);
-      model.traverse((o) => {
-        if (o.isMesh) {
-          o.castShadow = true;
-          o.receiveShadow = true;
+    await Promise.all(
+      names.map(async (name) => {
+        const model = await loadModel(`models/${name}.glb`);
+        model.traverse((o) => {
+          if (o.isMesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+          }
+        });
+        if (name === 'road') {
+          model.receiveShadow = true;
+          this.scene.add(model);
+        } else if (name === 'ego_car') {
+          this.egoMesh = model;
+          this.scene.add(model);
+        } else {
+          model.visible = false;
+          this.trafficMeshes.set(name, model);
         }
-      });
-      if (name === 'road') {
-        model.receiveShadow = true;
-        this.scene.add(model);
-      } else if (name === 'ego_car') {
-        this.egoMesh = model;
-        this.scene.add(model);
-      } else {
-        model.visible = false;
-        this.trafficMeshes.set(name, model);
-      }
-      done++;
-      onProgress?.(done / names.length);
-    }
+        done++;
+        onProgress?.(done / names.length);
+      }),
+    );
   }
 
   /** Ensure a visible instance exists in the scene for this traffic vehicle id. */

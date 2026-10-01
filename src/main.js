@@ -59,12 +59,23 @@ window.addEventListener('resize', resize);
 
 async function boot() {
   $('loading').hidden = false;
-  await scene3d.loadAssets((p) => ($('loading-bar').style.width = `${p * 100}%`));
+  $('loading-retry').hidden = true;
+  $('loading-text').textContent = 'Loading scene…';
+  $('loading-bar').style.width = '0%';
+  try {
+    await scene3d.loadAssets((p) => ($('loading-bar').style.width = `${p * 100}%`));
+  } catch (err) {
+    console.error('Failed to load the scene:', err);
+    $('loading-text').textContent = `Couldn't load the scene: ${err.message}`;
+    $('loading-retry').hidden = false;
+    return;
+  }
   $('loading').hidden = true;
   resize();
   applyRadarCone();
   requestAnimationFrame(loop);
 }
+$('loading-retry').onclick = boot;
 
 // Rolling (exponentially-smoothed) accuracy stats: how far raw detections and
 // filtered track estimates land from the true vehicle position they came
