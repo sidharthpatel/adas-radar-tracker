@@ -36,10 +36,16 @@ deploy step — don't run `wrangler deploy` by hand against this project;
 let the connected build handle it. Build status and logs live under the
 `radar-tracker` Worker's **Builds** tab in the Cloudflare dashboard.
 
-Live at <https://sidharthpatel.com/projects/radar-tracker/>.
+Live at <https://sidharthpatel.com/projects/kalman-radar/>.
 
 Because the route is path-prefixed, `vite.config.js` sets `base:
-'/projects/radar-tracker/'` so built asset URLs resolve correctly, and
+'/projects/kalman-radar/'` so built asset URLs resolve correctly, and
 `worker.js` strips that prefix before delegating to the static asset
 binding (Workers Assets expects uploaded files to mirror the route's path,
 which a Vite build doesn't produce on its own).
+
+The path deliberately avoids the word "tracker" (the original path was
+`/projects/radar-tracker/`): many ad/privacy blocklists, including Brave
+Shields, have generic rules blocking any URL containing "tracker", which
+silently broke asset loading for visitors with those blockers enabled —
+a different model file would fail to load unpredictably on each page load.

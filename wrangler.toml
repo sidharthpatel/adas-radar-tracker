@@ -3,8 +3,9 @@ compatibility_date = "2026-10-01"
 main = "worker.js"
 account_id = "817829d80d62c6ed685c04ed53dbaf11"
 
+# Path avoids the word "tracker" — see vite.config.js for why.
 routes = [
-  { pattern = "sidharthpatel.com/projects/radar-tracker*", zone_name = "sidharthpatel.com" }
+  { pattern = "sidharthpatel.com/projects/kalman-radar*", zone_name = "sidharthpatel.com" }
 ]
 
 [assets]
