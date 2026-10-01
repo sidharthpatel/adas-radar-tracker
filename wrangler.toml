@@ -1,0 +1,12 @@
+name = "radar-tracker"
+compatibility_date = "2026-10-01"
+main = "worker.js"
+
+routes = [
+  { pattern = "sidharthpatel.com/projects/radar-tracker*", zone_name = "sidharthpatel.com" }
+]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"

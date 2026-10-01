@@ -22,3 +22,20 @@ pack](https://sketchfab.com/3d-models/generic-passenger-car-pack-20f9af9b8a404d5
 by Comrade1280, licensed [CC Attribution
 4.0](https://creativecommons.org/licenses/by/4.0/). Individual body styles
 were extracted, recolored, and re-exported for this project.
+
+## Deployment
+
+Deployed as a Cloudflare Worker with static assets, bound to a path on
+`sidharthpatel.com` (not a subdomain) rather than its own Pages project —
+this keeps it fully independent of the portfolio site's own deployment.
+
+    npm run build
+    npx wrangler deploy
+
+Live at <https://sidharthpatel.com/projects/radar-tracker/>.
+
+Because the route is path-prefixed, `vite.config.js` sets `base:
+'/projects/radar-tracker/'` so built asset URLs resolve correctly, and
+`worker.js` strips that prefix before delegating to the static asset
+binding (Workers Assets expects uploaded files to mirror the route's path,
+which a Vite build doesn't produce on its own).
