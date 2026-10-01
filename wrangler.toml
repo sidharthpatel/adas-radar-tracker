@@ -1,6 +1,7 @@
 name = "radar-tracker"
 compatibility_date = "2026-10-01"
 main = "worker.js"
+account_id = "817829d80d62c6ed685c04ed53dbaf11"
 
 routes = [
   { pattern = "sidharthpatel.com/projects/radar-tracker*", zone_name = "sidharthpatel.com" }
